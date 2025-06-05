@@ -27,5 +27,4 @@ async function uploadMedia(filePath) {
     }
 }
 
-// Example usage:
 uploadMedia('./Adventures Holmes Doyle.mp3');
