@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Batch Upload Test</title>
+</head>
+<body>
+  <h2>Select Files or Folder</h2>
+  <input type="file" id="fileInput" webkitdirectory=".mp3, .mp4" />
+  <button onclick="upload()">Upload</button>
+
+  <pre id="result"></pre>
+
+  <script>
+    async function upload() {
+      const input = document.getElementById('fileInput');
+      const files = input.files;
+
+      if (files.length === 0) {
+        alert("Please select files or a folder.");
+        return;
+      }
+
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+
+      const response = await fetch("http://localhost:8000/batch-generate-vtt", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+      document.getElementById("result").textContent = JSON.stringify(result, null, 2);
+    }
+  </script>
+</body>
+</html>
