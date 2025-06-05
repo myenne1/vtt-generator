@@ -2,3 +2,6 @@ tempCodeRunnerFile.py
 tempCodeRunnerFile.js
 tempCodeRunnerFile.mjs
 closedCaptioning-env/
+__pycache__/
+*.pyc
+*.pyo
