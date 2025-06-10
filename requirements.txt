@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+openai-whisper==20240930
+torch==2.2.0
+torchaudio==2.2.0
+pydub==0.25.1
+numpy<2
+transformers==4.48.1
+pysubs2==1.6.0
