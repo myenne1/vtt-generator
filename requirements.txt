@@ -7,3 +7,4 @@ pydub==0.25.1
 numpy<2
 transformers==4.48.1
 pysubs2==1.6.0
+python-multipart
