@@ -22,9 +22,9 @@ This is a FastAPI backend that accepts audio or video files and generates corres
 
 ## Installation
 
-1. Clone the Repository:
+1. Clone the Repository with subsai submodule:
 ```sh
-git clone https://github.com/your-username/closed-captioning-service.git
+git clone --recurse-submodules https://github.com/your-username/closed-captioning-service.git
 cd closed-captioning-service
 ```
 
