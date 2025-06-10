@@ -1,0 +1,3 @@
+[submodule "subsai"]
+	path = subsai
+	url = https://github.com/absadiki/subsai.git
