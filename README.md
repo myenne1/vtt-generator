@@ -24,8 +24,8 @@ This is a FastAPI backend that accepts audio or video files and generates corres
 
 1. Clone the Repository with subsai submodule:
 ```sh
-git clone --recurse-submodules https://github.com/your-username/closed-captioning-service.git
-cd closed-captioning-service
+git clone --recurse-submodules https://github.com/your-username/ClosedCaptioning.git
+cd ClosedCaptioning
 ```
 
 2. Create and activate a virtual environment
@@ -39,7 +39,30 @@ source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
 ```
 
-4. Start the server
+4. Install ffmpeg for Whisper's model
+```sh
+# on Ubuntu or Debian
+sudo apt update && sudo apt install ffmpeg
+
+# on Arch Linux
+sudo pacman -S ffmpeg
+
+# on MacOS using Homebrew (https://brew.sh/)
+brew install ffmpeg
+
+# on Windows using Chocolatey (https://chocolatey.org/)
+choco install ffmpeg
+
+# on Windows using Scoop (https://scoop.sh/)
+scoop install ffmpeg
+```
+
+5. Install subsai
+```sh
+pip install git+https://github.com/absadiki/subsai
+```
+
+6. Start the server
 ```sh
 uvicorn subsAPI:app --reload
 ```
