@@ -17,7 +17,7 @@ Endpoint:
 import re
 from configurations.config import settings
 import os
-import magic
+# import magic (not available on Windows)
 from typing import List
 import datetime
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -102,9 +102,11 @@ def validate_file(filename: str, contents: bytes):
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(400, f"File type {ext} not supported")
     
-    mime = magic.from_buffer(contents, mime=True)
-    if mime not in ALLOWED_MIME_TYPES:
-        raise HTTPException(400, f"File type {mime} not supported")
+    # Uses libmagic (not available on Windows)
+    
+    # mime = magic.from_buffer(contents, mime=True)
+    # if mime not in ALLOWED_MIME_TYPES:
+    #     raise HTTPException(400, f"File type {mime} not supported")
         
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(400, f"File size exceeds the limit of {MAX_FILE_SIZE} bytes.")
