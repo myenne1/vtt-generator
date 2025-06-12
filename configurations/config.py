@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int
     ALLOWED_EXTENSIONS: list[str]
     ALLOWED_MIME_TYPES: list[str]
+    BUCKET_NAME: str
     
     class Config:
         env_file = "./configurations/configs.env"

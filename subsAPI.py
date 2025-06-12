@@ -14,6 +14,7 @@ Endpoint:
         - Returns JSON response with per-file success or error info
 """
 
+import boto3
 import re
 from configurations.config import settings
 import os
@@ -26,15 +27,18 @@ from subsai import SubsAI
 
 app = FastAPI()
 
+s3 = boto3.client('s3')
+
 MAX_FILE_SIZE = settings.MAX_FILE_SIZE
 ALLOWED_EXTENSIONS = settings.ALLOWED_EXTENSIONS
 ALLOWED_MIME_TYPES = settings.ALLOWED_MIME_TYPES
+BUCKET_NAME = settings.BUCKET_NAME
 
 @app.post("/batch-generate-vtt")
 async def batch_generate_vtt(files: List[UploadFile] = File(...)):
     # Create output directory with timestamp
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    timestamp = datetime.datetime.now().strftime("%I:%M:%S%p")
+    timestamp = datetime.datetime.now().strftime("%I-%M-%S")
     date_time_str = f"{date_str}_{timestamp}"
     output_dir = os.path.join(date_time_str)
     os.makedirs(output_dir, exist_ok=True)
@@ -57,7 +61,19 @@ async def batch_generate_vtt(files: List[UploadFile] = File(...)):
             vtt_path = run_subsai(media_path, output_dir)
             timestamp = datetime.datetime.now().strftime("%I:%M:%S %p")
             log_entry += f"Processing Status: Success\nTime: {timestamp}\n\n"
-            results.append({"input": filename, "vtt": vtt_path})
+            
+            # Upload both files to S3
+            # upload_file_to_s3(media_path, f"{date_time_str}/{filename}")
+            # upload_file_to_s3(vtt_path, f"{date_time_str}/{os.path.basename(vtt_path)}")
+            
+            # Removes files from local
+            # os.remove(media_path)
+            # os.remove(vtt_path)
+            
+            # results.append({
+            #     "input": filename,
+            #     "vtt": f"https://{BUCKET_NAME}.s3.amazonaws.com/{date_time_str}/{os.path.basename(vtt_path)}"
+            #     })
             
         except HTTPException as e:
             log_entry += f"Processing Status: Failed\nError: {e.detail}\n\n"
@@ -69,6 +85,8 @@ async def batch_generate_vtt(files: List[UploadFile] = File(...)):
 
         with open(log_path, "a") as log_file:
             log_file.write(log_entry)
+        
+    # upload_file_to_s3(log_path, f"{date_time_str}/log.txt")
 
     return JSONResponse(content=results)
 
@@ -83,6 +101,9 @@ def run_subsai(media_path, output_dir):
     vtt_path = os.path.join(output_dir, vtt_filename)
     subs.save(vtt_path)
     return vtt_path
+
+def upload_file_to_s3(file_path, s3_key):
+    s3.upload_file(file_path, BUCKET_NAME, s3_key)
 
 def validate_file(filename: str, contents: bytes):
     """
