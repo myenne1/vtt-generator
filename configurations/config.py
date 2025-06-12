@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     AWS_REGION: str | None = None
 
     BUCKET_NAME: str
-    
+    TIME_WINDOW: int
+    MIME_CHECKING: bool
     class Config:
         env_file = "./configurations/configs.env"
         env_file_encoding = "utf-8"
