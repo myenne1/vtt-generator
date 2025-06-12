@@ -6,7 +6,8 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: list[str]
     ALLOWED_MIME_TYPES: list[str]
     BUCKET_NAME: str
-    
+    TIME_WINDOW: int
+    MIME_CHECKING: bool
     class Config:
         env_file = "./configurations/configs.env"
         env_file_encoding = "utf-8"
