@@ -14,6 +14,7 @@ Endpoint:
         - Returns JSON response with per-file success or error info
 """
 
+import boto3
 import re
 import shutil
 from configurations.config import settings
