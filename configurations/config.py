@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str | None = None
     AWS_REGION: str | None = None
 
+    BUCKET_NAME: str
+    
     class Config:
         env_file = "./configurations/configs.env"
         env_file_encoding = "utf-8"
