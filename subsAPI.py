@@ -14,28 +14,34 @@ Endpoint:
         - Returns JSON response with per-file success or error info
 """
 
-import boto3
 import re
+import shutil
 from configurations.config import settings
 import os
-# import magic (not available on Windows)
+import asyncio
+
 from typing import List
 import datetime
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+
 from subsai import SubsAI
+import boto3
+from s3 import upload_file_to_s3, scan_bucket_for_recent_media
+from logger_util import LogWriter
 
 app = FastAPI()
 
 s3 = boto3.client('s3')
 
-MAX_FILE_SIZE = settings.MAX_FILE_SIZE
-ALLOWED_EXTENSIONS = settings.ALLOWED_EXTENSIONS
-ALLOWED_MIME_TYPES = settings.ALLOWED_MIME_TYPES
 BUCKET_NAME = settings.BUCKET_NAME
 
 @app.post("/batch-generate-vtt")
-async def batch_generate_vtt(files: List[UploadFile] = File(...)):
+async def batch_generate_vtt():
+    await run_batch_generate_transcription()
+    return JSONResponse(content={"message": "Batch transcription completed"})
+
+async def run_batch_generate_transcription():
     # Create output directory with timestamp
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     timestamp = datetime.datetime.now().strftime("%I-%M-%S")
@@ -43,100 +49,57 @@ async def batch_generate_vtt(files: List[UploadFile] = File(...)):
     output_dir = os.path.join(date_time_str)
     os.makedirs(output_dir, exist_ok=True)
     log_path = os.path.join(output_dir, "log.txt")
-
-    results = []
+    logger = LogWriter(log_path)
     
-    for file in files:
-        filename = sanitize_filename(file.filename)
-        log_entry = f"Filename: {filename}\n"
+    # Initialize log file with start message
+    logger.write(f"Batch transcription started at {timestamp}")
+    logger.write(f"Output directory: {output_dir}\n")
 
-        try:
-            contents = await file.read()
-            validate_file(file.filename, contents)
-
-            media_path = os.path.join(output_dir, filename)
-            with open(media_path, "wb") as f:
-                f.write(contents)
-
-            vtt_path = run_subsai(media_path, output_dir)
-            timestamp = datetime.datetime.now().strftime("%I:%M:%S %p")
-            log_entry += f"Processing Status: Success\nTime: {timestamp}\n\n"
-            
-            # Upload both files to S3
-            # upload_file_to_s3(media_path, f"{date_time_str}/{filename}")
-            # upload_file_to_s3(vtt_path, f"{date_time_str}/{os.path.basename(vtt_path)}")
-            
-            # Removes files from local
-            # os.remove(media_path)
-            # os.remove(vtt_path)
-            
-            # results.append({
-            #     "input": filename,
-            #     "vtt": f"https://{BUCKET_NAME}.s3.amazonaws.com/{date_time_str}/{os.path.basename(vtt_path)}"
-            #     })
-            
-        except HTTPException as e:
-            log_entry += f"Processing Status: Failed\nError: {e.detail}\n\n"
-            results.append({"input": filename, "error": e.detail})
-        except Exception as e:
-            error_msg = str(e)
-            log_entry += f"Processing Status: Failed\nError: {error_msg}\n\n"
-            results.append({"input": filename, "error": error_msg})
-
-        with open(log_path, "a") as log_file:
-            log_file.write(log_entry)
+    media_files = scan_bucket_for_recent_media(BUCKET_NAME, logger=logger)
+    
+    if not media_files:
+        logger.write("No recent media files found in S3 bucket\n")
+    else:
+        logger.write(f"Found {len(media_files)} media files to process:\n")
         
-    # upload_file_to_s3(log_path, f"{date_time_str}/log.txt")
+        for key, local_path in media_files:
+            logger.write(f"Processing file: {key}")
+            try:
+                vtt_path = run_subsai(local_path, original_filename=key)
+                
+                vtt_filename = os.path.basename(vtt_path)
+                final_vtt_path = os.path.join(output_dir, vtt_filename)
+                os.replace(vtt_path, final_vtt_path)
+                logger.write(f"Successfully generated VTT: {vtt_filename}")
 
-    return JSONResponse(content=results)
+                os.remove(local_path)
+                logger.write(f"Cleaned up local file: {local_path}\n")
+            except Exception as e:
+                logger.write(f"Error processing {key}: {str(e)}\n")
 
+    logger.write("Uploading files to S3...")
+    for filename in os.listdir(output_dir):
+        file_path = os.path.join(output_dir, filename)
+        try:
+            upload_file_to_s3(file_path, f"{date_time_str}/{filename}")
+            logger.write(f"Uploaded to S3: {filename}")
+        except Exception as e:
+            logger.write(f"Error uploading {filename}: {str(e)}")
 
-def run_subsai(media_path, output_dir):
+    # Upload log file to S3
+    upload_file_to_s3(log_path, f"{date_time_str}/log.txt")
+    
+    # Clean up folder
+    shutil.rmtree(output_dir)
+
+def run_subsai(media_path, original_filename):
     subs_ai = SubsAI()
     model = subs_ai.create_model('openai/whisper', {'model_type': 'base'})
     subs = subs_ai.transcribe(media_path, model)
-
-    base_name, _ = os.path.splitext(os.path.basename(media_path))
+    base_name = os.path.splitext(os.path.basename(original_filename))[0]
     vtt_filename = f"{base_name}.vtt"
-    vtt_path = os.path.join(output_dir, vtt_filename)
-    subs.save(vtt_path)
-    return vtt_path
+    subs.save(vtt_filename)
+    return vtt_filename
 
-def upload_file_to_s3(file_path, s3_key):
-    s3.upload_file(file_path, BUCKET_NAME, s3_key)
-
-def validate_file(filename: str, contents: bytes):
-    """
-    Validates the uploaded file for:
-    - Filename presence
-    - File extension whitelist
-    - MIME type correctness
-    - Maximum allowed file size
-    """
-    print(f"Validating file: {filename}")
-    print(f"File size: {len(contents)} bytes")
-    
-    if not filename:
-        raise HTTPException(400, "No filename provided")
-        
-    ext = os.path.splitext(filename)[1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(400, f"File type {ext} not supported")
-    
-    # Uses libmagic (not available on Windows)
-    
-    # mime = magic.from_buffer(contents, mime=True)
-    # if mime not in ALLOWED_MIME_TYPES:
-    #     raise HTTPException(400, f"File type {mime} not supported")
-        
-    if len(contents) > MAX_FILE_SIZE:
-        raise HTTPException(400, f"File size exceeds the limit of {MAX_FILE_SIZE} bytes.")
-
-def sanitize_filename(filename: str) -> str:
-    """
-    Sanitizes the filename by:
-    - Stripping path info
-    - Replacing special characters with underscores
-    """
-    filename = os.path.basename(filename)
-    return re.sub(r'[^\w\-.]', '_', filename)
+if __name__ == "__main__":
+    asyncio.run(run_batch_generate_transcription())
