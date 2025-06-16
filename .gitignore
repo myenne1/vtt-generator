@@ -6,7 +6,7 @@ __pycache__/
 *.pyc
 *.pyo
 .DS_Store
-configurations/configs.env
+configurations/config.env
 .env
 *.env.local
 *.env.production
