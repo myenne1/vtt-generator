@@ -50,6 +50,7 @@ async def batch_generate_vtt():
     return JSONResponse(content={"message": "Batch transcription completed"})
 
 async def run_batch_generate_transcription():
+
     # Create output directory with timestamp
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     timestamp = datetime.datetime.now().strftime("%I-%M-%S")

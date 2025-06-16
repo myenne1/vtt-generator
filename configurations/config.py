@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     TIME_WINDOW: int
     MIME_CHECKING: bool
     class Config:
-        env_file = "./configurations/configs.env"
+        env_file = "./configurations/config.env"
         env_file_encoding = "utf-8"
 
 settings = Settings()
