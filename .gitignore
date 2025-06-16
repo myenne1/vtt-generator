@@ -6,3 +6,10 @@ __pycache__/
 *.pyc
 *.pyo
 .DS_Store
+configs.env
+.env
+*.env.local
+*.env.production
+*.env.staging
+.aws/
+aws-credentials.json

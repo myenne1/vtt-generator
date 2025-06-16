@@ -32,9 +32,17 @@ from logger_util import LogWriter
 
 app = FastAPI()
 
-s3 = boto3.client('s3')
-
 BUCKET_NAME = settings.BUCKET_NAME
+AWS_ACCESS_KEY_ID = settings.AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY = settings.AWS_SECRET_ACCESS_KEY
+AWS_REGION = settings.AWS_REGION
+
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION
+    )
 
 @app.post("/batch-generate-vtt")
 async def batch_generate_vtt():
@@ -87,12 +95,16 @@ async def run_batch_generate_transcription():
             logger.write(f"Error uploading {filename}: {str(e)}")
 
     # Upload log file to S3
-    upload_file_to_s3(log_path, f"{date_time_str}/log.txt")
-    
-    # Clean up folder
-    shutil.rmtree(output_dir)
+    try:
+        upload_file_to_s3(log_path, f"{date_time_str}/log.txt")
+    except Exception as e:
+        logger.write(f"Error uploading log file: {str(e)}")
+            
+    finally:
+        # Clean up folder
+        shutil.rmtree(output_dir)
 
-def run_subsai(media_path, original_filename):
+def run_subsai(media_path, original_filename) -> str:
     subs_ai = SubsAI()
     model = subs_ai.create_model('openai/whisper', {'model_type': 'base'})
     subs = subs_ai.transcribe(media_path, model)
