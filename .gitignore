@@ -23,3 +23,5 @@ aws-credentials.json
 .coverage.*
 .coverage.xml
 .coverage.json
+.vercel
+configurations/.env.vercel
