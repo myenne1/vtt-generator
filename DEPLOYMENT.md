@@ -55,4 +55,3 @@ Test the deployment:
 ```bash
 curl -X POST https://your-vercel-domain.vercel.app/batch-generate-vtt
 ```
-EOF < /dev/null
