@@ -14,9 +14,6 @@ class Settings(BaseSettings):
     API_KEY: str
     RATE_LIMIT: str
 
-    BUCKET_NAME: str
-    TIME_WINDOW: int
-    MIME_CHECKING: bool
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
