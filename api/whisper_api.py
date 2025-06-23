@@ -62,7 +62,7 @@ async def run_openai_batch_transcription():
     date_str = datetime.datetime.now(local_timezone).strftime("%Y-%m-%d")
     timestamp = datetime.datetime.now(local_timezone).strftime("%I-%M-%S")
     date_time_str = f"{date_str}_{timestamp}"
-    output_dir = os.path.join("/tmp", date_time_str)  # Use /tmp for serverless
+    output_dir = os.path.join("/tmp", date_time_str)  # Uses /tmp for serverless uploads
     os.makedirs(output_dir, exist_ok=True)
     log_path = os.path.join(output_dir, "log.txt")
     logger = LogWriter(log_path)
@@ -84,7 +84,7 @@ async def run_openai_batch_transcription():
             for key, local_path in media_files:
                 logger.write(f"Processing file: {key}")
                 try:
-                    # Use OpenAI API instead of SubsAI
+                    # Use OpenAI API
                     vtt_path = transcribe_with_openai_api(local_path, original_filename=key)
                     
                     vtt_filename = os.path.basename(vtt_path)
@@ -122,20 +122,6 @@ async def run_openai_batch_transcription():
         # Clean up temporary folder
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
-
-
-def get_api_usage_estimate(audio_duration_minutes: float) -> dict:
-    """
-    Estimate OpenAI API costs for transcription
-    """
-    cost_per_minute = 0.006  # $0.006 per minute as of 2024
-    estimated_cost = audio_duration_minutes * cost_per_minute
-    
-    return {
-        "duration_minutes": audio_duration_minutes,
-        "cost_per_minute_usd": cost_per_minute,
-        "estimated_cost_usd": round(estimated_cost, 4)
-    }
     
 if __name__ == "__main__":
     asyncio.run(run_openai_batch_transcription())
