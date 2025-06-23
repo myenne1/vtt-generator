@@ -18,7 +18,7 @@
   "crons": [
     {
       "path": "/batch-generate-vtt",
-      "schedule": "15 10 * * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }
