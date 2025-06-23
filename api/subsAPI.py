@@ -25,10 +25,11 @@ import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
-from subsai import SubsAI
+# from subsai import SubsAI
 import boto3
 from s3 import upload_file_to_s3, scan_bucket_for_recent_media
 from logger_util import LogWriter
+from whisper_api import run_openai_batch_transcription
 
 app = FastAPI()
 
@@ -46,7 +47,8 @@ s3 = boto3.client(
 
 @app.post("/batch-generate-vtt")
 async def batch_generate_vtt():
-    await run_batch_generate_transcription()
+    # await run_batch_generate_transcription()
+    await run_openai_batch_transcription()
     return JSONResponse(content={"message": "Batch transcription completed"})
 
 async def run_batch_generate_transcription():
@@ -104,14 +106,11 @@ async def run_batch_generate_transcription():
         # Clean up folder
         shutil.rmtree(output_dir)
 
-def run_subsai(media_path, original_filename) -> str:
-    subs_ai = SubsAI()
-    model = subs_ai.create_model('openai/whisper', {'model_type': 'base'})
-    subs = subs_ai.transcribe(media_path, model)
-    base_name = os.path.splitext(os.path.basename(original_filename))[0]
-    vtt_filename = f"{base_name}.vtt"
-    subs.save(vtt_filename)
-    return vtt_filename
-
-if __name__ == "__main__":
-    asyncio.run(run_batch_generate_transcription())
+# def run_subsai(media_path, original_filename) -> str:
+#     subs_ai = SubsAI()
+#     model = subs_ai.create_model('openai/whisper', {'model_type': 'base'})
+#     subs = subs_ai.transcribe(media_path, model)
+#     base_name = os.path.splitext(os.path.basename(original_filename))[0]
+#     vtt_filename = f"{base_name}.vtt"
+#     subs.save(vtt_filename)
+#     return vtt_filename

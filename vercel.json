@@ -2,26 +2,23 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/main.py",
-      "use": "@vercel/python"
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/main.py"
+      "dest": "api/index.py"
     }
   ],
-  "functions": {
-    "api/main.py": {
-      "maxDuration": 300
-    }
-  },
   "crons": [
     {
       "path": "/batch-generate-vtt",
-      "schedule": "0 */6 * * *"
+      "schedule": "15 10 * * *"
     }
   ]
 }
-EOF < /dev/null
