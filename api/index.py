@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from whisper_api import run_openai_batch_transcription
+from api.whisper_api import run_openai_batch_transcription
 
 app = FastAPI(title="Closed Captioning Service", version="1.0.0")
 
