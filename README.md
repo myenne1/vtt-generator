@@ -213,19 +213,7 @@ uvicorn api.main:app --reload
 
 ## 🔒 Security
 
-<<<<<<< HEAD
-# If not installed, install using the system dependency commands above
-```
-
-**4. SubsAI Import Errors**
-```bash
-# Reinstall SubsAI
-pip uninstall subsai
-pip install git+https://github.com/absadiki/subsai
-```
-=======
 - File validation includes MIME type checking
 - Temporary files are automatically cleaned up
 - AWS credentials should use minimal required permissions
 - OpenAI API key should be kept secure and rotated regularly
->>>>>>> subsai-code-cleanup

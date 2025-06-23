@@ -25,3 +25,4 @@ aws-credentials.json
 .coverage.json
 .vercel
 configurations/.env.vercel
+.ropeproject
