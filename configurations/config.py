@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str | None = None
     AWS_REGION: str | None = None
     OPENAI_API_KEY: str | None = None
+    API_KEY: str
 
     class Config:
         env_file = "./configurations/config.env"
