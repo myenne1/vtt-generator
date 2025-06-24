@@ -4,6 +4,7 @@ Vercel-compatible FastAPI application for closed captioning service
 
 import sys
 import os
+from urllib import request
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from configurations.config import settings
@@ -157,6 +158,8 @@ async def batch_generate_vtt(request: Request, _: str = Depends(verify_api_key))
     """
     Batch generate VTT files from media files in S3 bucket
     """
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Unauthorized")
     try:
         print("Batch transcription started...")
         result = await run_openai_batch_transcription()
