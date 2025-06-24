@@ -12,9 +12,10 @@ class Settings(BaseSettings):
     AWS_REGION: str | None = None
     OPENAI_API_KEY: str | None = None
     API_KEY: str
+    RATE_LIMIT: str
 
     class Config:
-        env_file = "./configurations/config.env"
+        env_file = ".env"
         env_file_encoding = "utf-8"
 
 settings = Settings()
