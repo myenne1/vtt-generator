@@ -23,7 +23,6 @@ client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 BUCKET_NAME = settings.BUCKET_NAME
 
-
 def transcribe_with_openai_api(audio_file_path: str, original_filename: str) -> str:
     """
     Transcribe audio file using OpenAI Whisper API
@@ -84,7 +83,8 @@ def transcribe_with_openai_api(audio_file_path: str, original_filename: str) -> 
 async def run_openai_batch_transcription():
     local_timezone = ZoneInfo('America/Chicago')
     timestamp = datetime.datetime.now(local_timezone).strftime("%Y-%m-%d_%I-%M-%S")
-    output_dir, log_path, logger = setup_transcription_environment(timestamp)
+    output_dir, log_path, logger = setup_transcription_directory(timestamp)
+    empty_s3_flag = False
 
     success_count = 0
     failure_count = 0
@@ -92,25 +92,20 @@ async def run_openai_batch_transcription():
 
     try:
         media_files = scan_bucket_for_recent_media(BUCKET_NAME, logger=logger)
-        if not media_files:
-            return {"message": "No files to process"}
-
-        success_count, failure_count, error_summary = await process_batch_files(
-                                                            media_files, 
-                                                            output_dir, 
-                                                            logger
-                                                        )
-
-        upload_output_to_s3(output_dir, timestamp, logger)
-        upload_log_file_to_s3(log_path, timestamp, logger)
-
+        
+        if media_files:
+            success_count, failure_count, error_summary = await process_batch_files(media_files, output_dir, logger)
+            upload_output_to_s3(output_dir, timestamp, logger)
+            upload_log_file_to_s3(log_path, timestamp, logger)
+        else:
+            empty_s3_flag = True
     finally:
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
 
-    return summarize_batch_results(success_count, failure_count, error_summary)
+    return summarize_batch_results(success_count, failure_count, error_summary, empty_s3_flag)
 
-def setup_transcription_environment(timestamp):
+def setup_transcription_directory(timestamp):
     output_dir = os.path.join("/tmp", timestamp)
     os.makedirs(output_dir, exist_ok=True)
     log_path = os.path.join(output_dir, "log.txt")
@@ -160,9 +155,13 @@ def upload_log_file_to_s3(log_path, timestamp, logger):
     except Exception as e:
         logger.write(f"Error uploading log file: {str(e)}")
 
-def summarize_batch_results(success_count, failure_count, error_summary):
+def summarize_batch_results(success_count, failure_count, error_summary, empty_s3_flag):
     if success_count == 0:
-        return {"status": "failed", "message": "All files failed to transcribe.", "errors": error_summary}
+        if empty_s3_flag:
+            return {"status": "failed", "message": "No files to transcribe"}
+        else:
+            return {"status": "failed", "message": "All files failed to transcribe.", "errors": error_summary}
+        
     elif failure_count > 0:
         return {
             "status": "partial_success",
