@@ -22,7 +22,6 @@ from configurations.config import settings
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 BUCKET_NAME = settings.BUCKET_NAME
 
-
 def transcribe_with_openai_api(audio_file_path: str, original_filename: str) -> str:
     """
     Transcribe audio file using OpenAI Whisper API
