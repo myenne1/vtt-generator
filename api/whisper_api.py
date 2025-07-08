@@ -13,15 +13,15 @@ from typing import List, Tuple
 from openai import OpenAI
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
-
-from s3 import upload_file_to_s3, scan_bucket_for_recent_media
+from subsai import SubsAI
 from logger_util import LogWriter
+from s3 import scan_bucket_for_recent_media, upload_file_to_s3
 from configurations.config import settings
 
 # OpenAI client initialization
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
 BUCKET_NAME = settings.BUCKET_NAME
+
 
 def transcribe_with_openai_api(audio_file_path: str, original_filename: str) -> str:
     """
@@ -170,6 +170,13 @@ def summarize_batch_results(success_count, failure_count, error_summary, empty_s
         }
     else:
         return {"status": "success", "message": "All files transcribed successfully."}
-            
+
+async def main():
+    print('transcribed', transcribe_with_subsai(
+       audio_file_path='media/Ending.mp3',
+       original_filename='media/Ending.mp3'
+    ))
+    ...
 if __name__ == "__main__":
-    asyncio.run(run_openai_batch_transcription())
+    asyncio.run(main())
+    

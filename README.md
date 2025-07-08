@@ -93,7 +93,7 @@ The service automatically runs on Vercel with:
 ### Local Development
 ```bash
 # Start the FastAPI server
-uvicorn api.main:app --reload
+uvicorn api.index:app --reload
 
 # Server available at: http://localhost:8000
 # API docs at: http://localhost:8000/docs
@@ -102,7 +102,7 @@ uvicorn api.main:app --reload
 ### Direct Processing
 ```bash
 # Run batch processing directly
-python -m api.whisper_api
+python api/whisper_api.py
 ```
 
 ## 🧪 Testing
@@ -116,7 +116,7 @@ curl -X POST "https://your-app.vercel.app/batch-generate-vtt"
 ### 2. Test Locally
 ```bash
 # Start local server
-uvicorn api.main:app --reload
+uvicorn api.index:app --reload
 
 # Test endpoint
 curl -X POST "http://localhost:8000/batch-generate-vtt"
@@ -127,10 +127,10 @@ Upload `.mp3` or `.mp4` files to your S3 bucket, then trigger processing via the
 ## 📁 Project Structure
 
 ```
-ClosedCaptioning/
+vtt-generator/
 ├── api/
-│   └── main.py                # FastAPI application (Vercel entry point)
-├── whisper_api.py             # OpenAI Whisper API integration
+│   ├── index.py               # FastAPI application (Vercel entry point)
+│   └── whisper_api.py         # OpenAI Whisper API integration
 ├── s3.py                      # S3 integration and file scanning
 ├── file_validation.py         # File validation and security
 ├── logger_util.py             # Logging utilities
@@ -203,12 +203,11 @@ Triggers batch processing of recent files in the configured S3 bucket using Open
 # Install dependencies
 pip install -r requirements.txt
 
-# Set environment variables
-cp .env.example .env
-# Edit .env with your values
+# Set environment variables (create .env file with your values)
+# Edit .env with your OpenAI API key, AWS credentials, etc.
 
 # Run locally
-uvicorn api.main:app --reload
+uvicorn api.index:app --reload
 ```
 
 ## 🔒 Security
