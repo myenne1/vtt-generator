@@ -4,6 +4,7 @@ import os
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 from configurations.config import settings
+import time
 
 def transcribe_with_whisper(audio_file_path: str) -> str:
     """
@@ -11,6 +12,7 @@ def transcribe_with_whisper(audio_file_path: str) -> str:
     Returns path to generated VTT file
     """
     try:
+        start_time = time.time()
         # Load Whisper model
         model = whisper.load_model("base")
         
@@ -25,6 +27,9 @@ def transcribe_with_whisper(audio_file_path: str) -> str:
         
         with open(vtt_filename, 'w', encoding='utf-8') as f:
             f.write(vtt_content)
+            
+        elapsed_time = time.time() - start_time
+        print(f"Time taken: {elapsed_time * 1000:.2f} ms")
         
         return vtt_filename
         
