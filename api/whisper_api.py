@@ -13,7 +13,7 @@ from typing import List, Tuple
 from openai import OpenAI
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
-from subsai import SubsAI
+# from subsai import SubsAI
 from logger_util import LogWriter
 from s3 import scan_bucket_for_recent_media, upload_file_to_s3
 from configurations.config import settings
