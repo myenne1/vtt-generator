@@ -105,6 +105,52 @@ uvicorn api.index:app --reload
 python api/whisper_api.py
 ```
 
+### Local Development & Testing with Seeding Script
+The `seeding_faster-whisper.py` script provides local processing capabilities using the faster-whisper library for development and testing purposes.
+
+#### Features
+- **Local Processing**: Process audio files without requiring internet connectivity
+- **Faster Performance**: Uses the optimized faster-whisper library
+- **Batch Upload**: Upload multiple files to S3 at once
+- **Timestamped Output**: Automatically creates timestamped folders for organized output
+
+#### Usage
+
+**Process Local Files:**
+```bash
+# Process files from 'input' directory and save VTT files to timestamped folders
+python seeding.py --action process --input /path/to/audio
+
+# Custom input/output paths
+python seeding_faster-whisper.py --action process --input /path/to/audio --output /path/to/output
+```
+
+**Upload Files to S3:**
+```bash
+# Upload files from 'input' directory to S3
+python seeding_faster-whisper.py --action upload
+
+# Custom paths and S3 prefix
+python seeding_faster-whisper.py --action upload --input /path/to/files --prefix media/batch1/
+```
+
+#### Output Structure
+When processing locally, files are saved in timestamped directories:
+```
+2025-01-08_15-30-45/
+├── audio1.vtt
+├── audio2.vtt
+└── video1.vtt
+```
+
+#### Supported Formats
+- MP3, MP4, WAV, M4A, FLAC
+
+#### Requirements
+- Python virtual environment with dependencies installed
+- For local processing: No internet required
+- For S3 upload: AWS credentials configured
+
 ## 🧪 Testing
 
 ### 1. Test Deployed Service
@@ -134,6 +180,7 @@ vtt-generator/
 ├── s3.py                      # S3 integration and file scanning
 ├── file_validation.py         # File validation and security
 ├── logger_util.py             # Logging utilities
+├── seeding.py                 # Local processing script with faster-whisper
 ├── configurations/
 │   └── config.py              # Pydantic settings management
 ├── requirements.txt           # Python dependencies (serverless-optimized)

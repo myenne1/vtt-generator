@@ -26,3 +26,4 @@ aws-credentials.json
 .vercel
 configurations/.env.vercel
 .ropeproject
+venv
