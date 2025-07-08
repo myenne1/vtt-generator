@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = None
     API_KEY: str
     RATE_LIMIT: str
+    OPENAI_API_KEY: str
 
     class Config:
         env_file = ".env"
