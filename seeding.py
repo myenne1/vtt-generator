@@ -1,10 +1,14 @@
 from fastapi import HTTPException
-import whisper
 import os
 import boto3
+from faster_whisper import WhisperModel
 from botocore.exceptions import NoCredentialsError, ClientError
 from configurations.config import settings
 import time
+import datetime
+
+# Load Whisper model
+model = WhisperModel("base.en", device='auto', compute_type='int8')
 
 def transcribe_with_whisper(audio_file_path: str) -> str:
     """
@@ -12,32 +16,29 @@ def transcribe_with_whisper(audio_file_path: str) -> str:
     Returns path to generated VTT file
     """
     try:
-        start_time = time.time()
-        # Load Whisper model
-        model = whisper.load_model("base")
+        start_time = time.time()  
         
-        # Transcribe audio file
-        result = model.transcribe(audio_file_path)
-        # Save VTT content to file with same basename
+        segments, _ = model.transcribe(audio_file_path)
+        
+        vtt_content = "WEBVTT\n\n"
+        for i, segment in enumerate(segments):
+            start = format_time(segment.start)
+            end = format_time(segment.end)
+            text = segment.text.strip()
+            vtt_content += f"{start} --> {end}\n{text}\n\n"
+
         base_name = os.path.splitext(os.path.basename(audio_file_path))[0]
         vtt_filename = os.path.join("/tmp", f"{base_name}.vtt")
-        
-        # Convert to VTT format
-        vtt_content = convert_to_vtt(result)
-        
-        with open(vtt_filename, 'w', encoding='utf-8') as f:
+        with open(vtt_filename, "w", encoding="utf-8") as f:
             f.write(vtt_content)
             
         elapsed_time = time.time() - start_time
         print(f"Time taken: {elapsed_time * 1000:.2f} ms")
         
         return vtt_filename
-        
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error during Whisper transcription: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 def convert_to_vtt(result):
     """
@@ -53,6 +54,21 @@ def convert_to_vtt(result):
         vtt_content += f"{start_time} --> {end_time}\n{text}\n\n"
     
     return vtt_content
+
+def create_timestamped_folder() -> str:
+    """
+    Create a timestamped folder with format YYYY-MM-DD_HH-MM-SS
+    Returns the full path to the created directory
+    """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    folder_path = timestamp
+    
+    # Create the directory if it doesn't exist
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        print(f"Created timestamped folder: {folder_path}")
+    
+    return folder_path
 
 def format_time(seconds):
     """
@@ -184,9 +200,8 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
     if not os.path.exists(input_path):
         raise Exception(f'Input path "{input_path}" does not exist. Please create it with all mp3/mp4 files.')
 
-    if not os.path.exists(output_path):
-        print(f'Creating output directory: {output_path}')
-        os.makedirs(output_path)
+    # Create timestamped folder directly
+    timestamped_output = create_timestamped_folder()
     
     processed_files = []
     failed_files = []
@@ -203,7 +218,7 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
                     vtt_path = transcribe_with_whisper(file_path)
                     
                     output_filename = f"{os.path.splitext(filename)[0]}.vtt"
-                    final_path = os.path.join(output_path, output_filename)
+                    final_path = os.path.join(timestamped_output, output_filename)
                     
                     os.rename(vtt_path, final_path)
                     processed_files.append({'input': filename, 'output': output_filename})
