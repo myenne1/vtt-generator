@@ -168,23 +168,23 @@ def batch_upload_files(input_path: str = 'input', prefix: str = 'media/'):
     uploaded_files = []
     failed_files = []
     
-    for filename in os.listdir(input_path):
+    upload_candidates = [
+        filename for filename in os.listdir(input_path)
+        if os.path.isfile(os.path.join(input_path, filename)) and
+           os.path.splitext(filename)[1].lower() in ['.mp3', '.mp4', '.wav', '.m4a', '.flac']
+    ]
+    total_files = len(upload_candidates)
+
+    for i, filename in enumerate(upload_candidates, 1):
         file_path = os.path.join(input_path, filename)
-        
-        if os.path.isfile(file_path):
-            file_ext = os.path.splitext(filename)[1].lower()
-            
-            if file_ext in ['.mp3', '.mp4', '.wav', '.m4a', '.flac']:
-                try:
-                    s3_key = f"{prefix}{filename}"
-                    s3_url = upload_to_s3(file_path, s3_key)
-                    uploaded_files.append({'filename': filename, 'url': s3_url})
-                    print(f"✓ Uploaded: {filename} -> {s3_key}")
-                except Exception as e:
-                    failed_files.append({'filename': filename, 'error': str(e)})
-                    print(f"✗ Failed to upload {filename}: {str(e)}")
-            else:
-                print(f"⚠ Skipped {filename} (unsupported format)")
+        try:
+            s3_key = f"{prefix}{filename}"
+            s3_url = upload_to_s3(file_path, s3_key)
+            uploaded_files.append({'filename': filename, 'url': s3_url})
+            print(f"✓ Uploaded: {filename} -> {s3_key} ({total_files - i} file(s) left)")
+        except Exception as e:
+            failed_files.append({'filename': filename, 'error': str(e)})
+            print(f"✗ Failed to upload {filename}: {str(e)}")
     
     return {
         'uploaded': uploaded_files,
@@ -206,29 +206,26 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
     processed_files = []
     failed_files = []
     
-    for filename in os.listdir(input_path):
+    vtt_candidates = [
+        filename for filename in os.listdir(input_path)
+        if os.path.isfile(os.path.join(input_path, filename)) and
+           os.path.splitext(filename)[1].lower() in ['.mp3', '.mp4', '.wav', '.m4a', '.flac']
+    ]
+    total_files = len(vtt_candidates)
+
+    for i, filename in enumerate(vtt_candidates, 1):
         file_path = os.path.join(input_path, filename)
-        
-        if os.path.isfile(file_path):
-            file_ext = os.path.splitext(filename)[1].lower()
-            
-            if file_ext in ['.mp3', '.mp4', '.wav', '.m4a', '.flac']:
-                try:
-                    print(f"Processing: {filename}")
-                    vtt_path = transcribe_with_whisper(file_path)
-                    
-                    output_filename = f"{os.path.splitext(filename)[0]}.vtt"
-                    final_path = os.path.join(timestamped_output, output_filename)
-                    
-                    os.rename(vtt_path, final_path)
-                    processed_files.append({'input': filename, 'output': output_filename})
-                    print(f"✓ Generated: {output_filename}")
-                    
-                except Exception as e:
-                    failed_files.append({'filename': filename, 'error': str(e)})
-                    print(f"✗ Failed to process {filename}: {str(e)}")
-            else:
-                print(f"⚠ Skipped {filename} (unsupported format)")
+        try:
+            print(f"Processing: {filename}")
+            vtt_path = transcribe_with_whisper(file_path)
+            output_filename = f"{os.path.splitext(filename)[0]}.vtt"
+            final_path = os.path.join(timestamped_output, output_filename)
+            os.rename(vtt_path, final_path)
+            processed_files.append({'input': filename, 'output': output_filename})
+            print(f"✓ Generated: {output_filename} ({total_files - i} file(s) left)")
+        except Exception as e:
+            failed_files.append({'filename': filename, 'error': str(e)})
+            print(f"✗ Failed to process {filename}: {str(e)}")
     
     return {
         'processed': processed_files,
