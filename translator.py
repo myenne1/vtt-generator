@@ -4,6 +4,7 @@ import argparse
 import time
 from argostranslate import package, translate
 from logger_util import LogWriter
+from seeding import create_timestamped_folder
 
 # Download and install English-Spanish package if not present
 available_packages = package.get_available_packages()
@@ -34,7 +35,7 @@ def translate_vtt_file(input_file, output_file):
 
 def batch_translate_vtts(input_folder):
     start_time = time.time()
-    output_folder = "output"
+    output_folder = create_timestamped_folder()
     os.makedirs(output_folder, exist_ok=True)
     
     # Setup logging
