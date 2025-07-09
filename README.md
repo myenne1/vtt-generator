@@ -151,6 +151,36 @@ When processing locally, files are saved in timestamped directories:
 - For local processing: No internet required
 - For S3 upload: AWS credentials configured
 
+## 🌐 VTT Translation Service
+
+The `translator.py` script translates English VTT subtitle files to Spanish using Argos Translate for offline translation.
+
+### What It Does
+
+- Takes a folder of English VTT files as input
+- Translates subtitle text content to Spanish while preserving timestamps and formatting
+- Outputs translated files with `_es.vtt` suffix in timestamped folders
+- Provides batch processing with progress tracking and error handling
+
+### How It Works
+
+1. **File Processing**: Scans input folder for `.vtt` files
+2. **Smart Translation**: Uses Argos Translate to translate only subtitle text, preserving WebVTT structure and timing
+3. **Batch Output**: Creates translated files in organized timestamped directories
+4. **Logging**: Generates processing logs with success/failure statistics
+
+### Usage
+
+```bash
+# Translate all VTT files in a folder
+python translator.py --input /path/to/vtt/files
+```
+
+**Example workflow:**
+1. Generate English VTT files using the main service
+2. Run translator on the VTT folder
+3. Get Spanish subtitles in a timestamped output folder
+
 ## 🧪 Testing
 
 ### 1. Test Deployed Service
