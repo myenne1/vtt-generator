@@ -32,6 +32,9 @@ def transcribe_with_whisper(audio_file_path: str) -> str:
         vtt_filename = os.path.join("/tmp", f"{base_name}.vtt")
         with open(vtt_filename, "w", encoding="utf-8") as f:
             f.write(vtt_content)
+            
+        elapsed_time = time.time() - start_time
+        print(f"Time taken: {elapsed_time * 1000:.2f} ms")
         
         return vtt_filename
 
