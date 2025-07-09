@@ -171,12 +171,4 @@ def summarize_batch_results(success_count, failure_count, error_summary, empty_s
     else:
         return {"status": "success", "message": "All files transcribed successfully."}
 
-async def main():
-    print('transcribed', transcribe_with_subsai(
-       audio_file_path='media/Ending.mp3',
-       original_filename='media/Ending.mp3'
-    ))
-    ...
-if __name__ == "__main__":
-    asyncio.run(main())
     

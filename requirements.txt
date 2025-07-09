@@ -176,4 +176,5 @@ whisperx==3.3.1
 wrapt==1.17.2
 yarl==1.20.1
 zipp==3.23.0
+argostranslate==1.9.6
 

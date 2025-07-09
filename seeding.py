@@ -6,6 +6,8 @@ from botocore.exceptions import NoCredentialsError, ClientError
 from configurations.config import settings
 import time
 import datetime
+import argparse
+from logger_util import LogWriter
 
 # Load Whisper model
 model = WhisperModel("base.en", device='auto', compute_type='int8')
@@ -16,8 +18,7 @@ def transcribe_with_whisper(audio_file_path: str) -> str:
     Returns path to generated VTT file
     """
     try:
-        start_time = time.time()  
-        
+                
         segments, _ = model.transcribe(audio_file_path)
         
         vtt_content = "WEBVTT\n\n"
@@ -165,26 +166,47 @@ def batch_upload_files(input_path: str = 'input', prefix: str = 'media/'):
     if not os.path.exists(input_path):
         raise Exception(f'Input path "{input_path}" does not exist. Please create it with all mp3/mp4 files.')
     
+    # Setup logging
+    output_folder = "output"
+    os.makedirs(output_folder, exist_ok=True)
+    log_path = os.path.join(output_folder, "upload_log.txt")
+    logger = LogWriter(log_path)
+    logger.write(f"Batch upload started at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.write(f"Input path: {input_path}")
+    logger.write(f"S3 prefix: {prefix}\n")
+    
     uploaded_files = []
     failed_files = []
     
-    for filename in os.listdir(input_path):
+    upload_candidates = [
+        filename for filename in os.listdir(input_path)
+        if os.path.isfile(os.path.join(input_path, filename)) and
+           os.path.splitext(filename)[1].lower() in ['.mp3', '.mp4', '.wav', '.m4a', '.flac']
+    ]
+    total_files = len(upload_candidates)
+
+    for i, filename in enumerate(upload_candidates, 1):
         file_path = os.path.join(input_path, filename)
-        
-        if os.path.isfile(file_path):
-            file_ext = os.path.splitext(filename)[1].lower()
-            
-            if file_ext in ['.mp3', '.mp4', '.wav', '.m4a', '.flac']:
-                try:
-                    s3_key = f"{prefix}{filename}"
-                    s3_url = upload_to_s3(file_path, s3_key)
-                    uploaded_files.append({'filename': filename, 'url': s3_url})
-                    print(f"✓ Uploaded: {filename} -> {s3_key}")
-                except Exception as e:
-                    failed_files.append({'filename': filename, 'error': str(e)})
-                    print(f"✗ Failed to upload {filename}: {str(e)}")
-            else:
-                print(f"⚠ Skipped {filename} (unsupported format)")
+        try:
+            s3_key = f"{prefix}{filename}"
+            s3_url = upload_to_s3(file_path, s3_key)
+            uploaded_files.append({'filename': filename, 'url': s3_url})
+            msg = f"✓ Uploaded: {filename} -> {s3_key} ({total_files - i} file(s) left)"
+            print(msg)
+            logger.write(msg)
+        except Exception as e:
+            failed_files.append({'filename': filename, 'error': str(e)})
+            msg = f"✗ Failed to upload {filename}: {str(e)}"
+            print(msg)
+            logger.write(msg)
+    
+    logger.write("\nUpload Summary:")
+    logger.write(f"✓ Successfully uploaded: {len(uploaded_files)} files")
+    logger.write(f"✗ Failed uploads: {len(failed_files)} files")
+    if failed_files:
+        logger.write("Failed files:")
+        for f in failed_files:
+            logger.write(f"    - {f['filename']}: {f['error']}")
     
     return {
         'uploaded': uploaded_files,
@@ -203,32 +225,50 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
     # Create timestamped folder directly
     timestamped_output = create_timestamped_folder()
     
+    # Setup logging
+    log_path = os.path.join(timestamped_output, "log.txt")
+    logger = LogWriter(log_path)
+    logger.write(f"Local file processing started at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.write(f"Input path: {input_path}")
+    logger.write(f"Output path: {timestamped_output}\n")
+    
     processed_files = []
     failed_files = []
     
-    for filename in os.listdir(input_path):
+    vtt_candidates = [
+        filename for filename in os.listdir(input_path)
+        if os.path.isfile(os.path.join(input_path, filename)) and
+           os.path.splitext(filename)[1].lower() in ['.mp3', '.mp4', '.wav', '.m4a', '.flac']
+    ]
+    total_files = len(vtt_candidates)
+
+    for i, filename in enumerate(vtt_candidates, 1):
         file_path = os.path.join(input_path, filename)
-        
-        if os.path.isfile(file_path):
-            file_ext = os.path.splitext(filename)[1].lower()
-            
-            if file_ext in ['.mp3', '.mp4', '.wav', '.m4a', '.flac']:
-                try:
-                    print(f"Processing: {filename}")
-                    vtt_path = transcribe_with_whisper(file_path)
-                    
-                    output_filename = f"{os.path.splitext(filename)[0]}.vtt"
-                    final_path = os.path.join(timestamped_output, output_filename)
-                    
-                    os.rename(vtt_path, final_path)
-                    processed_files.append({'input': filename, 'output': output_filename})
-                    print(f"✓ Generated: {output_filename}")
-                    
-                except Exception as e:
-                    failed_files.append({'filename': filename, 'error': str(e)})
-                    print(f"✗ Failed to process {filename}: {str(e)}")
-            else:
-                print(f"⚠ Skipped {filename} (unsupported format)")
+        try:
+            msg = f"\nProcessing: {filename}"
+            print(msg)
+            logger.write(msg)
+            vtt_path = transcribe_with_whisper(file_path)
+            output_filename = f"{os.path.splitext(filename)[0]}.vtt"
+            final_path = os.path.join(timestamped_output, output_filename)
+            os.rename(vtt_path, final_path)
+            processed_files.append({'input': filename, 'output': output_filename})
+            msg = f"✓ Generated: {output_filename} ({total_files - i} file(s) left)"
+            print(msg)
+            logger.write(msg)
+        except Exception as e:
+            failed_files.append({'filename': filename, 'error': str(e)})
+            msg = f"✗ Failed to process {filename}: {str(e)}"
+            print(msg)
+            logger.write(msg)
+    
+    logger.write("\nProcessing Summary:")
+    logger.write(f"✓ Successfully processed: {len(processed_files)} files")
+    logger.write(f"✗ Failed processing: {len(failed_files)} files")
+    if failed_files:
+        logger.write("Failed files:")
+        for f in failed_files:
+            logger.write(f"    - {f['filename']}: {f['error']}")
     
     return {
         'processed': processed_files,
@@ -238,8 +278,7 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
     }
 
 if __name__ == '__main__':
-    import argparse
-    
+        
     parser = argparse.ArgumentParser(description='VTT Generator Seeding Script')
     parser.add_argument('--action', choices=['upload', 'process'], required=True,
                        help='Action to perform: upload files to S3 or process files locally')
@@ -257,8 +296,11 @@ if __name__ == '__main__':
         print(f"✗ Failed uploads: {result['total_failed']} files")
         
     elif args.action == 'process':
+        start_time = time.time()
         print("Starting local file processing...")
         result = process_local_files(args.input, args.output)
+        elapsed_time = time.time() - start_time
         print(f"\nProcessing Summary:")
         print(f"✓ Successfully processed: {result['total_processed']} files")
         print(f"✗ Failed processing: {result['total_failed']} files")
+        print(f" Time Taken: {elapsed_time / 60:.2f} minutes")
