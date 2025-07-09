@@ -1,15 +1,15 @@
 import os
 import re
 import argparse
-from argostranslate import package, translate
 import time
+from argostranslate import package, translate
+from logger_util import LogWriter
 
 # Download and install English-Spanish package if not present
 available_packages = package.get_available_packages()
 en_es_package = next((pkg for pkg in available_packages if pkg.from_code == "en" and pkg.to_code == "es"), None)
 if en_es_package:
     package.install_from_path(en_es_package.download())
-    
     
 # Setup Argos Translate: English → Spanish
 langs = translate.get_installed_languages()
@@ -37,6 +37,13 @@ def batch_translate_vtts(input_folder):
     output_folder = "output"
     os.makedirs(output_folder, exist_ok=True)
     
+    # Setup logging
+    log_path = os.path.join(output_folder, "log.txt")
+    logger = LogWriter(log_path)
+    logger.write(f"Batch translation started at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.write(f"Input folder: {input_folder}")
+    logger.write(f"Output folder: {output_folder}\n")
+    
     vtt_files = [f for f in os.listdir(input_folder) if f.endswith(".vtt")]
     total_files = len(vtt_files)
 
@@ -53,24 +60,36 @@ def batch_translate_vtts(input_folder):
         base_name = os.path.splitext(filename)[0]
         output_file = os.path.join(output_folder, f"{base_name}_es.vtt")
         
-        print(f"Translating: {filename} → {base_name}_es.vtt ({total_files - i} file(s) left)")
+        msg = f"\nTranslating: {filename} → {base_name}_es.vtt ({total_files - i} file(s) left)"
+        print(msg)
+        logger.write(msg)
         try:
             translate_vtt_file(input_file, output_file)
             success_count += 1
+            logger.write(f"Successfully translated: {filename}")
         except Exception as e:
             print(f"Failed to translate {filename}: {e}")
+            error_msg = f"Failed to translate {filename}: {e}"
+            print(error_msg)
+            logger.write(error_msg)
             fail_count += 1
             failed_files.append(filename)
 
     print("\nTranslation Summary:")
     print(f"  Successful: {success_count}")
     print(f"  Failed: {fail_count}")
+    logger.write("\nTranslation Summary:")
+    logger.write(f"  Successful: {success_count}")
+    logger.write(f"  Failed: {fail_count}")
     if failed_files:
         print("  Failed files:")
+        logger.write("  Failed files:")
         for f in failed_files:
             print(f"    - {f}")
+            logger.write(f"    - {f}")
             
     elapsed_time = time.time() - start_time
+    logger.write(f"\nTotal time taken: {elapsed_time / 60:.2f} minutes")
     print(f"\nTotal time taken: {elapsed_time / 60:.2f} minutes")
 
 if __name__ == "__main__":

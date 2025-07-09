@@ -7,6 +7,7 @@ from configurations.config import settings
 import time
 import datetime
 import argparse
+from logger_util import LogWriter
 
 # Load Whisper model
 model = WhisperModel("base.en", device='auto', compute_type='int8')
@@ -162,6 +163,15 @@ def batch_upload_files(input_path: str = 'input', prefix: str = 'media/'):
     if not os.path.exists(input_path):
         raise Exception(f'Input path "{input_path}" does not exist. Please create it with all mp3/mp4 files.')
     
+    # Setup logging
+    output_folder = "output"
+    os.makedirs(output_folder, exist_ok=True)
+    log_path = os.path.join(output_folder, "upload_log.txt")
+    logger = LogWriter(log_path)
+    logger.write(f"Batch upload started at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.write(f"Input path: {input_path}")
+    logger.write(f"S3 prefix: {prefix}\n")
+    
     uploaded_files = []
     failed_files = []
     
@@ -178,10 +188,22 @@ def batch_upload_files(input_path: str = 'input', prefix: str = 'media/'):
             s3_key = f"{prefix}{filename}"
             s3_url = upload_to_s3(file_path, s3_key)
             uploaded_files.append({'filename': filename, 'url': s3_url})
-            print(f"✓ Uploaded: {filename} -> {s3_key} ({total_files - i} file(s) left)")
+            msg = f"✓ Uploaded: {filename} -> {s3_key} ({total_files - i} file(s) left)"
+            print(msg)
+            logger.write(msg)
         except Exception as e:
             failed_files.append({'filename': filename, 'error': str(e)})
-            print(f"✗ Failed to upload {filename}: {str(e)}")
+            msg = f"✗ Failed to upload {filename}: {str(e)}"
+            print(msg)
+            logger.write(msg)
+    
+    logger.write("\nUpload Summary:")
+    logger.write(f"✓ Successfully uploaded: {len(uploaded_files)} files")
+    logger.write(f"✗ Failed uploads: {len(failed_files)} files")
+    if failed_files:
+        logger.write("Failed files:")
+        for f in failed_files:
+            logger.write(f"    - {f['filename']}: {f['error']}")
     
     return {
         'uploaded': uploaded_files,
@@ -200,6 +222,13 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
     # Create timestamped folder directly
     timestamped_output = create_timestamped_folder()
     
+    # Setup logging
+    log_path = os.path.join(timestamped_output, "log.txt")
+    logger = LogWriter(log_path)
+    logger.write(f"Local file processing started at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.write(f"Input path: {input_path}")
+    logger.write(f"Output path: {timestamped_output}\n")
+    
     processed_files = []
     failed_files = []
     
@@ -213,16 +242,30 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
     for i, filename in enumerate(vtt_candidates, 1):
         file_path = os.path.join(input_path, filename)
         try:
-            print(f"\nProcessing: {filename}")
+            msg = f"\nProcessing: {filename}"
+            print(msg)
+            logger.write(msg)
             vtt_path = transcribe_with_whisper(file_path)
             output_filename = f"{os.path.splitext(filename)[0]}.vtt"
             final_path = os.path.join(timestamped_output, output_filename)
             os.rename(vtt_path, final_path)
             processed_files.append({'input': filename, 'output': output_filename})
-            print(f"✓ Generated: {output_filename} ({total_files - i} file(s) left)")
+            msg = f"✓ Generated: {output_filename} ({total_files - i} file(s) left)"
+            print(msg)
+            logger.write(msg)
         except Exception as e:
             failed_files.append({'filename': filename, 'error': str(e)})
-            print(f"✗ Failed to process {filename}: {str(e)}")
+            msg = f"✗ Failed to process {filename}: {str(e)}"
+            print(msg)
+            logger.write(msg)
+    
+    logger.write("\nProcessing Summary:")
+    logger.write(f"✓ Successfully processed: {len(processed_files)} files")
+    logger.write(f"✗ Failed processing: {len(failed_files)} files")
+    if failed_files:
+        logger.write("Failed files:")
+        for f in failed_files:
+            logger.write(f"    - {f['filename']}: {f['error']}")
     
     return {
         'processed': processed_files,
