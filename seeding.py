@@ -6,6 +6,7 @@ from botocore.exceptions import NoCredentialsError, ClientError
 from configurations.config import settings
 import time
 import datetime
+import argparse
 
 # Load Whisper model
 model = WhisperModel("base.en", device='auto', compute_type='int8')
@@ -16,8 +17,7 @@ def transcribe_with_whisper(audio_file_path: str) -> str:
     Returns path to generated VTT file
     """
     try:
-        start_time = time.time()  
-        
+                
         segments, _ = model.transcribe(audio_file_path)
         
         vtt_content = "WEBVTT\n\n"
@@ -31,9 +31,6 @@ def transcribe_with_whisper(audio_file_path: str) -> str:
         vtt_filename = os.path.join("/tmp", f"{base_name}.vtt")
         with open(vtt_filename, "w", encoding="utf-8") as f:
             f.write(vtt_content)
-            
-        elapsed_time = time.time() - start_time
-        print(f"Time taken: {elapsed_time * 1000:.2f} ms")
         
         return vtt_filename
 
@@ -216,7 +213,7 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
     for i, filename in enumerate(vtt_candidates, 1):
         file_path = os.path.join(input_path, filename)
         try:
-            print(f"Processing: {filename}")
+            print(f"\nProcessing: {filename}")
             vtt_path = transcribe_with_whisper(file_path)
             output_filename = f"{os.path.splitext(filename)[0]}.vtt"
             final_path = os.path.join(timestamped_output, output_filename)
@@ -235,8 +232,7 @@ def process_local_files(input_path: str = 'input', output_path: str = 'output'):
     }
 
 if __name__ == '__main__':
-    import argparse
-    
+        
     parser = argparse.ArgumentParser(description='VTT Generator Seeding Script')
     parser.add_argument('--action', choices=['upload', 'process'], required=True,
                        help='Action to perform: upload files to S3 or process files locally')
@@ -254,8 +250,11 @@ if __name__ == '__main__':
         print(f"✗ Failed uploads: {result['total_failed']} files")
         
     elif args.action == 'process':
+        start_time = time.time()
         print("Starting local file processing...")
         result = process_local_files(args.input, args.output)
+        elapsed_time = time.time() - start_time
         print(f"\nProcessing Summary:")
         print(f"✓ Successfully processed: {result['total_processed']} files")
         print(f"✗ Failed processing: {result['total_failed']} files")
+        print(f" Time Taken: {elapsed_time / 60:.2f} minutes")

@@ -2,6 +2,7 @@ import os
 import re
 import argparse
 from argostranslate import package, translate
+import time
 
 # Download and install English-Spanish package if not present
 available_packages = package.get_available_packages()
@@ -32,20 +33,45 @@ def translate_vtt_file(input_file, output_file):
         f.writelines(translated_lines)
 
 def batch_translate_vtts(input_folder):
+    start_time = time.time()
     output_folder = "output"
     os.makedirs(output_folder, exist_ok=True)
     
     vtt_files = [f for f in os.listdir(input_folder) if f.endswith(".vtt")]
     total_files = len(vtt_files)
 
+    success_count = 0
+    fail_count = 0
+    failed_files = []
+    
+    if total_files == 0:
+        print("No VTT files found in the input folder.")
+        return
+    
     for i, filename in enumerate(vtt_files):
         input_file = os.path.join(input_folder, filename)
         base_name = os.path.splitext(filename)[0]
         output_file = os.path.join(output_folder, f"{base_name}_es.vtt")
         
         print(f"Translating: {filename} → {base_name}_es.vtt ({total_files - i} file(s) left)")
-        translate_vtt_file(input_file, output_file)
+        try:
+            translate_vtt_file(input_file, output_file)
+            success_count += 1
+        except Exception as e:
+            print(f"Failed to translate {filename}: {e}")
+            fail_count += 1
+            failed_files.append(filename)
+
+    print("\nTranslation Summary:")
+    print(f"  Successful: {success_count}")
+    print(f"  Failed: {fail_count}")
+    if failed_files:
+        print("  Failed files:")
+        for f in failed_files:
+            print(f"    - {f}")
             
+    elapsed_time = time.time() - start_time
+    print(f"\nTotal time taken: {elapsed_time / 60:.2f} minutes")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Translate all VTT files in a folder from English to Spanish.")
