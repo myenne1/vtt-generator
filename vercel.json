@@ -1,15 +1,16 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.py": {
-      "runtime": "@vercel/python",
-      "maxDuration": 10
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/batch-generate-vtt",
-      "dest": "api/index.py"
+      "dest": "/api/index.py",
+      "methods": ["GET", "POST"]
     }
   ],
   "crons": [
