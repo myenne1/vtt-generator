@@ -3,10 +3,7 @@
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
+      "use": "@vercel/python"
     }
   ],
   "routes": [
@@ -15,10 +12,9 @@
       "dest": "api/index.py"
     }
   ],
-  "crons": [
-    {
-      "path": "/batch-generate-vtt",
-      "schedule": "0 10 * * *"
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 10
     }
-  ]
+  }
 }
