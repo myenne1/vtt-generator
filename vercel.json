@@ -1,20 +1,21 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "api/index.py"
-    }
-  ],
   "functions": {
-    "api/index.py": {
+    "api/transcribe.py": {
+      "runtime": "python3.11",
       "maxDuration": 10
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/batch-generate-vtt",
+      "dest": "api/transcribe.py"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/batch-generate-vtt",
+      "schedule": "*/15 * * * *"
+    }
+  ]
 }
